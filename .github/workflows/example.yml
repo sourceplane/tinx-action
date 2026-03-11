@@ -1,0 +1,23 @@
+name: example
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-provider:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: tinx
+        uses: ./
+        with:
+          run: ghcr.io/sourceplane/lite-ci:v0.0.2 plan
+          outputs: |
+            plan=plan.json
+          artifacts: |
+            plan.json
+
+      - name: Show mapped output
+        run: |
+          echo "json=${{ steps.tinx.outputs.outputs-json }}"

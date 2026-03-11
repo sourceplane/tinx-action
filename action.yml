@@ -1,0 +1,89 @@
+name: "tinx-action"
+description: "Thin GitHub Action wrapper for tinx providers"
+author: "sourceplane"
+
+inputs:
+  run:
+    description: "Provider run spec in CLI form: <provider-ref> <capability> [args...]"
+    required: true
+  working-directory:
+    description: "Working directory used when running tinx"
+    required: false
+    default: "."
+  outputs:
+    description: |
+      Optional output mappings (one per line):
+      output_name=relative/or/absolute/file_path
+    required: false
+    default: ""
+  artifacts:
+    description: |
+      Optional artifact paths to upload (one per line).
+      Paths are resolved from working-directory unless absolute.
+    required: false
+    default: ""
+  artifact-name:
+    description: "Artifact bundle name when artifacts are uploaded"
+    required: false
+    default: "tinx-artifacts"
+  tinx-version:
+    description: "tinx version to install (default: latest)"
+    required: false
+    default: "latest"
+  install-url:
+    description: "Installer script URL"
+    required: false
+    default: "https://raw.githubusercontent.com/sourceplane/tinx/main/install.sh"
+
+outputs:
+  outputs-json:
+    description: "JSON object built from the provided outputs mapping"
+    value: ${{ steps.collect.outputs.outputs-json }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install tinx
+      shell: bash
+      env:
+        TINX_VERSION: ${{ inputs.tinx-version }}
+        INSTALL_URL: ${{ inputs.install-url }}
+      run: |
+        set -euo pipefail
+        INSTALL_DIR="${RUNNER_TEMP}/tinx-bin"
+        mkdir -p "${INSTALL_DIR}"
+        echo "TINX_INSTALL_DIR=${INSTALL_DIR}" >> "$GITHUB_ENV"
+        echo "${INSTALL_DIR}" >> "$GITHUB_PATH"
+        curl -fsSL "${INSTALL_URL}" | bash
+        "${INSTALL_DIR}/tinx" version
+
+    - name: Run tinx
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        RUN_SPEC: ${{ inputs.run }}
+      run: |
+        set -euo pipefail
+        eval "set -- ${RUN_SPEC}"
+        if [ "$#" -lt 2 ]; then
+          echo "error: 'run' must include at least '<provider-ref> <capability>'" >&2
+          exit 1
+        fi
+        tinx run "$@"
+
+    - name: Collect outputs
+      id: collect
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        OUTPUT_MAPPINGS: ${{ inputs.outputs }}
+      run: |
+        set -euo pipefail
+        bash "${{ github.action_path }}/scripts/collect_outputs.sh"
+
+    - name: Upload artifacts
+      if: ${{ inputs.artifacts != '' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifacts }}
