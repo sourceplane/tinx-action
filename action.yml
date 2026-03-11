@@ -1,6 +1,9 @@
 name: "tinx-action"
 description: "Thin GitHub Action wrapper for tinx providers"
 author: "sourceplane"
+branding:
+  icon: "package"
+  color: "blue"
 
 inputs:
   run:
