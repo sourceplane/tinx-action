@@ -41,64 +41,7 @@ inputs:
 outputs:
   outputs-json:
     description: "JSON object built from the provided outputs mapping"
-    value: ${{ steps.collect.outputs.outputs-json }}
 
 runs:
-  using: "composite"
-  steps:
-    - name: Install tinx
-      shell: bash
-      env:
-        TINX_VERSION: ${{ inputs.tinx-version }}
-        INSTALL_URL: ${{ inputs.install-url }}
-      run: |
-        set -euo pipefail
-        INSTALL_DIR="${RUNNER_TEMP}/tinx-bin"
-        mkdir -p "${INSTALL_DIR}"
-        export TINX_INSTALL_DIR="${INSTALL_DIR}"
-
-        echo "TINX_INSTALL_DIR=${INSTALL_DIR}" >> "$GITHUB_ENV"
-        echo "TINX_BIN=${INSTALL_DIR}/tinx" >> "$GITHUB_ENV"
-        echo "${INSTALL_DIR}" >> "$GITHUB_PATH"
-        curl -fsSL "${INSTALL_URL}" | bash
-
-    - name: Verify tinx installation
-      shell: bash
-      run: |
-        set -euo pipefail
-        if [ ! -x "${TINX_BIN}" ]; then
-          echo "error: tinx not found at ${TINX_BIN}" >&2
-          exit 1
-        fi
-        "${TINX_BIN}" version
-
-    - name: Run tinx
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      env:
-        RUN_SPEC: ${{ inputs.run }}
-      run: |
-        set -euo pipefail
-        eval "set -- ${RUN_SPEC}"
-        if [ "$#" -lt 2 ]; then
-          echo "error: 'run' must include at least '<provider-ref> <capability>'" >&2
-          exit 1
-        fi
-        "${TINX_BIN}" run "$@"
-
-    - name: Collect outputs
-      id: collect
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      env:
-        OUTPUT_MAPPINGS: ${{ inputs.outputs }}
-      run: |
-        set -euo pipefail
-        bash "${{ github.action_path }}/scripts/collect_outputs.sh"
-
-    - name: Upload artifacts
-      if: ${{ inputs.artifacts != '' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ inputs.artifact-name }}
-        path: ${{ inputs.artifacts }}
+  using: "node20"
+  main: "dist/index.js"

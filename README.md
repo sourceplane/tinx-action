@@ -1,6 +1,6 @@
 # tinx-action
 
-Thin GitHub Action wrapper for `tinx`.
+Thin Node-based GitHub Action wrapper for `tinx`.
 
 ## Design
 
@@ -10,6 +10,11 @@ Thin GitHub Action wrapper for `tinx`.
   - `artifacts`: upload selected files
 
 This keeps providers portable across local/CI environments.
+
+## Runtime
+
+- Runs as a JavaScript action (`node20`) and bundles logic in `dist/index.js`.
+- Installs `tinx` via the official `install.sh` from the `tinx` repository.
 
 ## Inputs
 
@@ -85,4 +90,4 @@ jobs:
 - Keep provider behavior inside provider logic; avoid action-level workflow abstraction.
 - `run` is intentionally aligned with CLI syntax.
 - Output file paths are resolved from `working-directory` unless absolute.
-- Installation follows standard setup-action behavior: path is exported for subsequent steps, and the action executes via a deterministic `TINX_BIN` path.
+- Artifacts are uploaded by the action itself using the GitHub artifact client.
